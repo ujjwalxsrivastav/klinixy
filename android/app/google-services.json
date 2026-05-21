@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "875181118672",
+    "project_id": "klinixy-68521",
+    "storage_bucket": "klinixy-68521.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:875181118672:android:d78e1b46c3c41c4dad3ad5",
+        "android_client_info": {
+          "package_name": "com.softrion.klinixy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfz1UIhPNbTOWBcq8yG7szLpuh3qrGWdM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

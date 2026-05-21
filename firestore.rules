@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper Functions ──────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isValidUser() {
+      return isSignedIn() && request.auth.uid != null;
+    }
+
+    // ── Users Collection ──────────────────────────────────────────
+    match /users/{userId} {
+      // Users can only read/write their own data
+      allow read, write: if isSignedIn() && isOwner(userId);
+    }
+
+    // ── Orders Collection ─────────────────────────────────────────
+    match /orders/{orderId} {
+      // Read: only the order owner
+      allow read: if isSignedIn() && isOwner(resource.data.userId);
+
+      // Create: authenticated user creating their own order
+      allow create: if isSignedIn()
+        && isOwner(request.resource.data.userId)
+        && request.resource.data.status == 'placed'
+        && request.resource.data.totalAmount is number
+        && request.resource.data.totalAmount > 0;
+
+      // Update: only owner can update (cancel), cannot change userId
+      allow update: if isSignedIn()
+        && isOwner(resource.data.userId)
+        && request.resource.data.userId == resource.data.userId;
+
+      // Delete: not allowed
+      allow delete: if false;
+    }
+
+    // ── Products Collection ───────────────────────────────────────
+    match /products/{productId} {
+      // Anyone can read products (for browsing)
+      allow read: if true;
+
+      // Only admin can write (enforced via Firebase Admin SDK)
+      allow write: if false;
+    }
+
+    // ── Categories Collection ─────────────────────────────────────
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ── Banners Collection ────────────────────────────────────────
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ── Cart Collection (server-side cart backup) ─────────────────
+    match /cart/{userId} {
+      allow read, write: if isSignedIn() && isOwner(userId);
+    }
+
+    // ── Reviews Collection ────────────────────────────────────────
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && isOwner(request.resource.data.userId)
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+      allow update, delete: if isSignedIn()
+        && isOwner(resource.data.userId);
+    }
+
+    // ── Prescriptions Collection ──────────────────────────────────
+    match /prescriptions/{prescriptionId} {
+      allow read, write: if isSignedIn()
+        && isOwner(resource.data.userId);
+      allow create: if isSignedIn()
+        && isOwner(request.resource.data.userId);
+    }
+
+    // Block all other collections by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
