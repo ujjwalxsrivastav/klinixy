@@ -3,6 +3,7 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
@@ -15,6 +16,8 @@ import 'package:flutter/foundation.dart'
 /// );
 /// ```
 class DefaultFirebaseOptions {
+  static String _env(String key) => dotenv.env[key] ?? '';
+
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
       return web;
@@ -40,47 +43,47 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDeVBshSrGHm3uTave-py0Yzg64wyA0U0E',
-    appId: '1:875181118672:web:55b17b4734fcdbd9ad3ad5',
-    messagingSenderId: '875181118672',
-    projectId: 'klinixy-68521',
-    authDomain: 'klinixy-68521.firebaseapp.com',
-    storageBucket: 'klinixy-68521.firebasestorage.app',
+  static FirebaseOptions get web => FirebaseOptions(
+    apiKey: _env('FIREBASE_WEB_API_KEY'),
+    appId: _env('FIREBASE_WEB_APP_ID'),
+    messagingSenderId: _env('FIREBASE_WEB_MESSAGING_SENDER_ID'),
+    projectId: _env('FIREBASE_WEB_PROJECT_ID'),
+    authDomain: _env('FIREBASE_WEB_AUTH_DOMAIN'),
+    storageBucket: _env('FIREBASE_WEB_STORAGE_BUCKET'),
   );
 
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCfz1UIhPNbTOWBcq8yG7szLpuh3qrGWdM',
-    appId: '1:875181118672:android:d78e1b46c3c41c4dad3ad5',
-    messagingSenderId: '875181118672',
-    projectId: 'klinixy-68521',
-    storageBucket: 'klinixy-68521.firebasestorage.app',
+  static FirebaseOptions get android => FirebaseOptions(
+    apiKey: _env('FIREBASE_ANDROID_API_KEY'),
+    appId: _env('FIREBASE_ANDROID_APP_ID'),
+    messagingSenderId: _env('FIREBASE_ANDROID_MESSAGING_SENDER_ID'),
+    projectId: _env('FIREBASE_ANDROID_PROJECT_ID'),
+    storageBucket: _env('FIREBASE_ANDROID_STORAGE_BUCKET'),
   );
 
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyB_76EiYXh_z0nH0qdTCmkZZ34Qa4WEJZ0',
-    appId: '1:875181118672:ios:ceddd6b5caee3de6ad3ad5',
-    messagingSenderId: '875181118672',
-    projectId: 'klinixy-68521',
-    storageBucket: 'klinixy-68521.firebasestorage.app',
-    iosBundleId: 'com.softrion.klinixy',
+  static FirebaseOptions get ios => FirebaseOptions(
+    apiKey: _env('FIREBASE_IOS_API_KEY'),
+    appId: _env('FIREBASE_IOS_APP_ID'),
+    messagingSenderId: _env('FIREBASE_IOS_MESSAGING_SENDER_ID'),
+    projectId: _env('FIREBASE_IOS_PROJECT_ID'),
+    storageBucket: _env('FIREBASE_IOS_STORAGE_BUCKET'),
+    iosBundleId: _env('FIREBASE_IOS_BUNDLE_ID'),
   );
 
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyB_76EiYXh_z0nH0qdTCmkZZ34Qa4WEJZ0',
-    appId: '1:875181118672:ios:ceddd6b5caee3de6ad3ad5',
-    messagingSenderId: '875181118672',
-    projectId: 'klinixy-68521',
-    storageBucket: 'klinixy-68521.firebasestorage.app',
-    iosBundleId: 'com.softrion.klinixy',
+  static FirebaseOptions get macos => FirebaseOptions(
+    apiKey: _env('FIREBASE_IOS_API_KEY'),
+    appId: _env('FIREBASE_IOS_APP_ID'),
+    messagingSenderId: _env('FIREBASE_IOS_MESSAGING_SENDER_ID'),
+    projectId: _env('FIREBASE_IOS_PROJECT_ID'),
+    storageBucket: _env('FIREBASE_IOS_STORAGE_BUCKET'),
+    iosBundleId: _env('FIREBASE_IOS_BUNDLE_ID'),
   );
 
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDeVBshSrGHm3uTave-py0Yzg64wyA0U0E',
-    appId: '1:875181118672:web:55b17b4734fcdbd9ad3ad5',
-    messagingSenderId: '875181118672',
-    projectId: 'klinixy-68521',
-    authDomain: 'klinixy-68521.firebaseapp.com',
-    storageBucket: 'klinixy-68521.firebasestorage.app',
+  static FirebaseOptions get windows => FirebaseOptions(
+    apiKey: _env('FIREBASE_WEB_API_KEY'),
+    appId: _env('FIREBASE_WEB_APP_ID'),
+    messagingSenderId: _env('FIREBASE_WEB_MESSAGING_SENDER_ID'),
+    projectId: _env('FIREBASE_WEB_PROJECT_ID'),
+    authDomain: _env('FIREBASE_WEB_AUTH_DOMAIN'),
+    storageBucket: _env('FIREBASE_WEB_STORAGE_BUCKET'),
   );
 }
