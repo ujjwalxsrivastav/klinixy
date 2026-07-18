@@ -8,8 +8,11 @@ export 'package:klinixy/core/utils/location_models.dart';
 class LocationService {
   LocationService._();
 
-  // Mapbox Public Access Token provided by user
-  static const String _mapboxToken = 'YOUR_MAPBOX_PUBLIC_TOKEN';
+  // Mapbox public token. Set MAPBOX_PUBLIC_TOKEN at build time if needed.
+  static const String _mapboxToken = String.fromEnvironment(
+    'MAPBOX_PUBLIC_TOKEN',
+    defaultValue: 'YOUR_MAPBOX_PUBLIC_TOKEN',
+  );
   static const String _mapboxGeocodingBase = 'https://api.mapbox.com/geocoding/v5/mapbox.places';
 
   // ─────────────────────────────────────────────────────────────────────────────
