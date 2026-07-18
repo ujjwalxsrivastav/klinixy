@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "klinixy-68521"
+  },
+  "targets": {
+    "klinixy-68521": {
+      "hosting": {
+        "landing": [
+          "klinixy-68521"
+        ],
+        "app": [
+          "klinixy-app"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

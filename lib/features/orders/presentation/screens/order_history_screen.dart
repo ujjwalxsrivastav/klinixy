@@ -19,13 +19,29 @@ class OrderHistoryScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         leading: context.canPop()
             ? IconButton(
                 onPressed: () => context.pop(),
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                    size: 20, color: AppColors.textPrimary),
               )
             : null,
-        title: Text('My Orders', style: AppTextStyles.headlineMedium),
+        title: SizedBox(
+          height: 32,
+          child: Image.asset(
+            'assets/images/klinixy_logo_transparent.png',
+            fit: BoxFit.contain,
+            alignment: Alignment.centerLeft,
+            color: AppColors.primary,
+            colorBlendMode: BlendMode.srcIn,
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: AppColors.divider),
+        ),
       ),
       body: uid == null
           ? const _LoginPrompt()

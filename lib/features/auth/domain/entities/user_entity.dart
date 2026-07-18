@@ -8,6 +8,10 @@ class UserEntity extends Equatable {
   final String? phone;
   final DateTime createdAt;
 
+  final String? activeAddress;
+  final double? activeLatitude;
+  final double? activeLongitude;
+
   const UserEntity({
     required this.uid,
     required this.name,
@@ -15,10 +19,23 @@ class UserEntity extends Equatable {
     this.photoUrl,
     this.phone,
     required this.createdAt,
+    this.activeAddress,
+    this.activeLatitude,
+    this.activeLongitude,
   });
 
   @override
-  List<Object?> get props => [uid, name, email, photoUrl, phone, createdAt];
+  List<Object?> get props => [
+        uid,
+        name,
+        email,
+        photoUrl,
+        phone,
+        createdAt,
+        activeAddress,
+        activeLatitude,
+        activeLongitude
+      ];
 
   UserEntity copyWith({
     String? uid,
@@ -27,6 +44,9 @@ class UserEntity extends Equatable {
     String? photoUrl,
     String? phone,
     DateTime? createdAt,
+    String? activeAddress,
+    double? activeLatitude,
+    double? activeLongitude,
   }) {
     return UserEntity(
       uid: uid ?? this.uid,
@@ -35,6 +55,9 @@ class UserEntity extends Equatable {
       photoUrl: photoUrl ?? this.photoUrl,
       phone: phone ?? this.phone,
       createdAt: createdAt ?? this.createdAt,
+      activeAddress: activeAddress ?? this.activeAddress,
+      activeLatitude: activeLatitude ?? this.activeLatitude,
+      activeLongitude: activeLongitude ?? this.activeLongitude,
     );
   }
 
@@ -46,6 +69,9 @@ class UserEntity extends Equatable {
       'photoUrl': photoUrl,
       'phone': phone,
       'createdAt': createdAt.toIso8601String(),
+      'activeAddress': activeAddress,
+      'activeLatitude': activeLatitude,
+      'activeLongitude': activeLongitude,
     };
   }
 
@@ -59,6 +85,9 @@ class UserEntity extends Equatable {
       createdAt: map['createdAt'] != null
           ? DateTime.parse(map['createdAt'] as String)
           : DateTime.now(),
+      activeAddress: map['activeAddress'] as String?,
+      activeLatitude: (map['activeLatitude'] as num?)?.toDouble(),
+      activeLongitude: (map['activeLongitude'] as num?)?.toDouble(),
     );
   }
 }

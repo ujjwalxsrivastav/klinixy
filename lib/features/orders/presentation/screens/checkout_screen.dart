@@ -6,6 +6,8 @@ import 'package:klinixy/core/widgets/shared_widgets.dart';
 import 'package:klinixy/features/cart/presentation/bloc/cart_bloc.dart';
 import 'package:klinixy/features/orders/domain/entities/address_entity.dart';
 import 'package:klinixy/features/orders/presentation/bloc/checkout_bloc.dart';
+import 'package:klinixy/core/di/injection.dart';
+import 'package:klinixy/features/auth/domain/repositories/auth_repository.dart';
 
 class CheckoutScreen extends StatelessWidget {
   const CheckoutScreen({super.key});
@@ -108,82 +110,88 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _AddressSection extends StatelessWidget {
-  // Mock addresses — will be fetched from Firestore
-  final List<AddressEntity> _addresses = [
-    const AddressEntity(
-      id: 'addr1',
-      label: 'Home',
-      fullName: 'John Doe',
-      phone: '9876543210',
-      addressLine1: '45, Connaught Place',
-      addressLine2: 'Near Metro Station',
-      city: 'New Delhi',
-      state: 'Delhi',
-      pincode: '110001',
-      latitude: 28.6315,
-      longitude: 77.2167,
-      isDefault: true,
-    ),
-    const AddressEntity(
-      id: 'addr2',
-      label: 'Work',
-      fullName: 'John Doe',
-      phone: '9876543210',
-      addressLine1: 'Cyber City, DLF Phase 3',
-      addressLine2: 'Block A',
-      city: 'Gurugram',
-      state: 'Haryana',
-      pincode: '122002',
-      latitude: 28.4965,
-      longitude: 77.0893,
-    ),
-  ];
+  const _AddressSection();
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<CheckoutBloc, CheckoutState>(
-      builder: (context, state) {
-        return Column(
-          children: [
-            ..._addresses.map((addr) => _AddressCard(
-                  address: addr,
-                  isSelected: state.selectedAddress?.id == addr.id,
-                  onSelect: () => context
-                      .read<CheckoutBloc>()
-                      .add(CheckoutSelectAddress(addr)),
-                )),
-            const SizedBox(height: 10),
-            TapScale(
-              onTap: () => _showAddAddressSheet(context),
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  border: Border.all(
-                    color: AppColors.primary,
-                    style: BorderStyle.solid,
-                    width: 1.5,
-                  ),
-                  boxShadow: AppShadows.card,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.add_location_alt_rounded,
-                        color: AppColors.primary, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Add New Address',
-                      style: AppTextStyles.titleMedium.copyWith(
-                        color: AppColors.primary,
+    final repo = sl<AuthRepository>();
+
+    return StreamBuilder<List<AddressEntity>>(
+      stream: repo.getSavedAddresses(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final addresses = snapshot.data ?? [];
+
+        return BlocBuilder<CheckoutBloc, CheckoutState>(
+          builder: (context, state) {
+            // Auto-select default address if none is selected yet
+            if (state.selectedAddress == null && addresses.isNotEmpty) {
+              final defaultAddr = addresses.firstWhere((a) => a.isDefault, orElse: () => addresses.first);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (context.mounted) {
+                  context.read<CheckoutBloc>().add(CheckoutSelectAddress(defaultAddr));
+                }
+              });
+            }
+
+            return Column(
+              children: [
+                if (addresses.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Center(
+                      child: Text(
+                        'No saved addresses. Please add a new address.',
+                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                  ],
+                  )
+                else
+                  ...addresses.map((addr) => _AddressCard(
+                        address: addr,
+                        isSelected: state.selectedAddress?.id == addr.id,
+                        onSelect: () => context
+                            .read<CheckoutBloc>()
+                            .add(CheckoutSelectAddress(addr)),
+                      )),
+                const SizedBox(height: 10),
+                TapScale(
+                  onTap: () => _showAddAddressSheet(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      border: Border.all(
+                        color: AppColors.primary,
+                        style: BorderStyle.solid,
+                        width: 1.5,
+                      ),
+                      boxShadow: AppShadows.card,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.add_location_alt_rounded,
+                            color: AppColors.primary, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Add New Address',
+                          style: AppTextStyles.titleMedium.copyWith(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
@@ -858,9 +866,37 @@ class _AddAddressSheetState extends State<_AddAddressSheet> {
 
               KlinButton(
                 label: 'Save Address',
-                onTap: () {
+                onTap: () async {
                   if (_formKey.currentState?.validate() ?? false) {
-                    Navigator.pop(context);
+                    final newAddress = AddressEntity(
+                      id: '',
+                      label: _label,
+                      fullName: _nameCtrl.text.trim(),
+                      phone: _phoneCtrl.text.trim(),
+                      addressLine1: _addr1Ctrl.text.trim(),
+                      addressLine2: _addr2Ctrl.text.trim(),
+                      city: _cityCtrl.text.trim(),
+                      state: _stateCtrl.text.trim(),
+                      pincode: _pincodeCtrl.text.trim(),
+                      latitude: 28.6139,  // Default Delhi coordinates as fallback for manual address addition
+                      longitude: 77.2090,
+                    );
+                    
+                    try {
+                      await sl<AuthRepository>().addAddress(newAddress);
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to save address: $e'),
+                            backgroundColor: AppColors.error,
+                          ),
+                        );
+                      }
+                    }
                   }
                 },
               ),

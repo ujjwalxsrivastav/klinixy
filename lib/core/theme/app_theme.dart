@@ -4,48 +4,68 @@ import 'package:google_fonts/google_fonts.dart';
 class AppColors {
   AppColors._();
 
-  // Brand
-  static const Color primary = Color(0xFF0057FF);
-  static const Color primaryDark = Color(0xFF003ABF);
-  static const Color primaryLight = Color(0xFFE6EEFF);
-  static const Color secondary = Color(0xFF00C6AE);
-  static const Color accent = Color(0xFFFF6B35);
+  // ── Klinixy Brand Colors (extracted from logo) ────────────────────────
+  // Primary: Deep navy blue (KLINIXY text color)
+  static const Color primary = Color(0xFF0D2B6E);       // Deep navy
+  static const Color primaryDark = Color(0xFF091D4A);   // Darker navy
+  static const Color primaryLight = Color(0xFFE8EEF9);  // Very light navy tint
 
-  // Backgrounds
-  static const Color background = Color(0xFFF4F7FF);
+  // Secondary: Vibrant cyan (top of cross gradient)
+  static const Color secondary = Color(0xFF00C8F0);     // Bright cyan
+  static const Color secondaryDark = Color(0xFF0099CC); // Darker cyan
+
+  // Accent: Blue (bottom of cross gradient)
+  static const Color accent = Color(0xFF1A5AFF);        // Vivid blue
+
+  // ── Backgrounds ─────────────────────────────────────────────────────────
+  static const Color background = Color(0xFFF4F8FF);   // Very slight blue tint
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFF0F4FF);
+  static const Color surfaceVariant = Color(0xFFEEF3FF);
 
-  // Text
-  static const Color textPrimary = Color(0xFF0D1B3E);
-  static const Color textSecondary = Color(0xFF6B7A99);
-  static const Color textHint = Color(0xFFB0BCD4);
+  // ── Text ────────────────────────────────────────────────────────────────
+  static const Color textPrimary = Color(0xFF0D1B3E);   // Very dark navy
+  static const Color textSecondary = Color(0xFF4A5980);  // Muted blue-grey
+  static const Color textHint = Color(0xFFADB8D0);
 
-  // Status
+  // ── Status ──────────────────────────────────────────────────────────────
   static const Color success = Color(0xFF22C55E);
   static const Color warning = Color(0xFFFACC15);
   static const Color error = Color(0xFFEF4444);
 
-  // Misc
-  static const Color divider = Color(0xFFEAEFF8);
-  static const Color shimmerBase = Color(0xFFE8EDF8);
-  static const Color shimmerHighlight = Color(0xFFF5F7FF);
+  // ── Misc ─────────────────────────────────────────────────────────────────
+  static const Color divider = Color(0xFFE4EAF6);
+  static const Color shimmerBase = Color(0xFFE2E9F6);
+  static const Color shimmerHighlight = Color(0xFFF3F6FF);
 
-  // Gradients
+  // ── Gradients (match Klinixy logo gradient: cyan top → deep blue bottom) ─
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF0057FF), Color(0xFF003ABF)],
+    colors: [Color(0xFF00C8F0), Color(0xFF0D2B6E)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient heroGradient = LinearGradient(
-    colors: [Color(0xFF0057FF), Color(0xFF00C6AE)],
+    colors: [Color(0xFF00C8F0), Color(0xFF1A5AFF), Color(0xFF0D2B6E)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
+
+  // For splash: more radiant feel
+  static const LinearGradient splashGradient = LinearGradient(
+    colors: [Color(0xFF00D4FF), Color(0xFF1A5AFF), Color(0xFF091D4A)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient accentGradient = LinearGradient(
-    colors: [Color(0xFFFF6B35), Color(0xFFFF9500)],
+    colors: [Color(0xFF1A5AFF), Color(0xFF0D2B6E)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // Soft card gradient
+  static const LinearGradient cardGradient = LinearGradient(
+    colors: [Color(0xFFEEF5FF), Color(0xFFE0EFFF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -97,6 +117,12 @@ class AppTextStyles {
 
   static TextStyle get titleMedium => GoogleFonts.poppins(
         fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textPrimary,
+      );
+
+  static TextStyle get titleSmall => GoogleFonts.poppins(
+        fontSize: 13,
         fontWeight: FontWeight.w500,
         color: AppColors.textPrimary,
       );
@@ -159,8 +185,8 @@ class AppTheme {
         onPrimaryContainer: AppColors.primaryDark,
         secondary: AppColors.secondary,
         onSecondary: Colors.white,
-        secondaryContainer: const Color(0xFFD4F7F4),
-        onSecondaryContainer: const Color(0xFF00574E),
+        secondaryContainer: const Color(0xFFCCF2FC),
+        onSecondaryContainer: const Color(0xFF004A60),
         tertiary: AppColors.accent,
         onTertiary: Colors.white,
         error: AppColors.error,
@@ -332,7 +358,7 @@ class AppShadows {
 
   static List<BoxShadow> get card => [
         BoxShadow(
-          color: AppColors.primary.withOpacity(0.06),
+          color: AppColors.primary.withOpacity(0.07),
           blurRadius: 20,
           offset: const Offset(0, 4),
         ),
@@ -340,7 +366,7 @@ class AppShadows {
 
   static List<BoxShadow> get elevated => [
         BoxShadow(
-          color: AppColors.primary.withOpacity(0.12),
+          color: AppColors.primary.withOpacity(0.14),
           blurRadius: 32,
           offset: const Offset(0, 8),
         ),
@@ -348,9 +374,22 @@ class AppShadows {
 
   static List<BoxShadow> get bottomBar => [
         BoxShadow(
-          color: Colors.black.withOpacity(0.08),
+          color: AppColors.primary.withOpacity(0.10),
           blurRadius: 24,
           offset: const Offset(0, -4),
+        ),
+      ];
+
+  static List<BoxShadow> get logoShadow => [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.18),
+          blurRadius: 40,
+          offset: const Offset(0, 12),
+        ),
+        BoxShadow(
+          color: AppColors.secondary.withOpacity(0.3),
+          blurRadius: 60,
+          offset: const Offset(0, 20),
         ),
       ];
 }

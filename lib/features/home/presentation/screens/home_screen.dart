@@ -14,6 +14,8 @@ import 'package:klinixy/features/orders/presentation/screens/order_history_scree
 import 'package:klinixy/features/product/domain/entities/product_entity.dart';
 import 'package:klinixy/features/profile/presentation/screens/profile_screen.dart';
 import 'package:klinixy/features/search/presentation/screens/search_screen.dart';
+import 'package:klinixy/features/home/presentation/widgets/location_picker_sheet.dart';
+import 'package:klinixy/core/utils/location_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -35,6 +37,36 @@ class _HomeScreenState extends State<HomeScreen> {
         _showElevation = _scrollController.offset > 20;
       });
     });
+    // Auto location detection on launch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _autoDetectLocation();
+    });
+  }
+
+  Future<void> _autoDetectLocation() async {
+    final authBloc = context.read<AuthBloc>();
+    final state = authBloc.state;
+    if (state is AuthAuthenticated) {
+      final user = state.user;
+      if (user.activeAddress == null ||
+          user.activeAddress!.isEmpty ||
+          user.activeAddress == 'Unknown Location' ||
+          user.activeAddress!.startsWith('Lat:')) {
+        try {
+          final pos = await LocationService.getCurrentLocation();
+          final fullAddr = await LocationService.getAddressFromCoordinates(pos.latitude, pos.longitude);
+          if (mounted) {
+            authBloc.add(
+              AuthUpdateLocationRequested(
+                address: fullAddr,
+                latitude: pos.latitude,
+                longitude: pos.longitude,
+              ),
+            );
+          }
+        } catch (_) {}
+      }
+    }
   }
 
   @override
@@ -185,49 +217,80 @@ class _HomeTab extends StatelessWidget {
 class _HomeAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final user = (context.read<AuthBloc>().state is AuthAuthenticated)
-        ? (context.read<AuthBloc>().state as AuthAuthenticated).user
-        : null;
+    final authState = context.watch<AuthBloc>().state;
+    final user = (authState is AuthAuthenticated) ? authState.user : null;
 
     return Container(
-      color: AppColors.surface,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 12,
+        top: MediaQuery.of(context).padding.top + 8,
         left: AppSpacing.md,
         right: AppSpacing.md,
         bottom: 12,
       ),
       child: Row(
         children: [
-          // Location
+          // Klinixy Logo + Location
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.location_on_rounded,
-                        color: AppColors.accent, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Deliver to',
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: AppColors.textSecondary,
-                        fontSize: 11,
-                      ),
-                    ),
-                    const Icon(Icons.keyboard_arrow_down_rounded,
-                        size: 16, color: AppColors.textSecondary),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Select your location',
-                  style: AppTextStyles.titleMedium.copyWith(
-                    color: AppColors.textPrimary,
+                // Brand logo
+                SizedBox(
+                  height: 34,
+                  child: Image.asset(
+                    'assets/images/klinixy_logo_transparent.png',
+                    fit: BoxFit.contain,
+                    alignment: Alignment.centerLeft,
+                    color: AppColors.primary,
+                    colorBlendMode: BlendMode.srcIn,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                // Location row
+                TapScale(
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => const LocationPickerSheet(),
+                    );
+                  },
+                  child: Row(
+                    children: [
+                      ShaderMask(
+                        shaderCallback: (bounds) =>
+                            AppColors.primaryGradient.createShader(bounds),
+                        child: const Icon(Icons.location_on_rounded,
+                            color: Colors.white, size: 14),
+                      ),
+                      const SizedBox(width: 3),
+                      Expanded(
+                        child: Text(
+                          user?.activeAddress ?? 'Select your location',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const Icon(Icons.keyboard_arrow_down_rounded,
+                          size: 14, color: AppColors.textHint),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -241,27 +304,28 @@ class _HomeAppBar extends StatelessWidget {
                 builder: (context, cartState) => TapScale(
                   onTap: () => context.push('/cart'),
                   child: Container(
-                    width: 42,
-                    height: 42,
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
                       color: AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(13),
+                      border: Border.all(color: AppColors.divider, width: 1),
                     ),
                     child: Stack(
                       children: [
                         const Center(
                           child: Icon(Icons.shopping_bag_outlined,
-                              color: AppColors.textPrimary, size: 22),
+                              color: AppColors.textSecondary, size: 22),
                         ),
                         if (cartState.itemCount > 0)
                           Positioned(
-                            right: 6,
-                            top: 6,
+                            right: 7,
+                            top: 7,
                             child: Container(
                               width: 16,
                               height: 16,
                               decoration: const BoxDecoration(
-                                color: AppColors.accent,
+                                gradient: AppColors.primaryGradient,
                                 shape: BoxShape.circle,
                               ),
                               child: Center(
@@ -282,22 +346,29 @@ class _HomeAppBar extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              // Avatar
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.primaryLight,
-                backgroundImage: user?.photoUrl != null
-                    ? NetworkImage(user!.photoUrl!)
-                    : null,
-                child: user?.photoUrl == null
-                    ? Text(
-                        user?.name.substring(0, 1).toUpperCase() ?? 'U',
-                        style: AppTextStyles.titleMedium.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      )
-                    : null,
+              // Avatar with brand ring
+              Container(
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  shape: BoxShape.circle,
+                ),
+                child: CircleAvatar(
+                  radius: 19,
+                  backgroundColor: AppColors.primaryLight,
+                  backgroundImage: user?.photoUrl != null
+                      ? NetworkImage(user!.photoUrl!)
+                      : null,
+                  child: user?.photoUrl == null
+                      ? Text(
+                          user?.name.substring(0, 1).toUpperCase() ?? 'U',
+                          style: AppTextStyles.titleMedium.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        )
+                      : null,
+                ),
               ),
             ],
           ),
@@ -449,22 +520,28 @@ class _NavItem extends StatelessWidget {
       child: TapScale(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          duration: const Duration(milliseconds: 250),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
           decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.primaryLight
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 24,
-                color:
-                    isSelected ? AppColors.primary : AppColors.textHint,
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                width: isSelected ? 44 : 36,
+                height: isSelected ? 32 : 32,
+                decoration: BoxDecoration(
+                  gradient: isSelected ? AppColors.primaryGradient : null,
+                  color: isSelected ? null : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: isSelected ? Colors.white : AppColors.textHint,
+                ),
               ),
               const SizedBox(height: 4),
               Text(

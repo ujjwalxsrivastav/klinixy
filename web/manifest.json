@@ -1,11 +1,11 @@
 {
-    "name": "klinixy",
-    "short_name": "klinixy",
+    "name": "Klinixy — The Pulse of Digital Care",
+    "short_name": "Klinixy",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0D2B6E",
+    "theme_color": "#0D2B6E",
+    "description": "Order genuine medicines, health products and wellness essentials delivered in 30 minutes.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

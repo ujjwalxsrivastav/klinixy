@@ -19,6 +19,11 @@ service cloud.firestore {
     match /users/{userId} {
       // Users can only read/write their own data
       allow read, write: if isSignedIn() && isOwner(userId);
+
+      // Saved addresses subcollection rules
+      match /addresses/{addressId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
     }
 
     // ── Orders Collection ─────────────────────────────────────────

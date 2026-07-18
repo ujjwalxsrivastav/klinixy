@@ -23,5 +23,5 @@ class AppConstants {
   static const int expressDeliveryMinutes = 30;
 
   // Google Maps
-  static const String googleMapsApiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
+  static const String googleMapsApiKey = 'AIzaSyAunmmtJVnI36BqnW8piPQFMPH_7h-Mzhw';
 }

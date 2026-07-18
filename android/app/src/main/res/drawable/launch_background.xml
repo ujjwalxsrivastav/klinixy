@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- Klinixy launch splash screen background -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
+    <!-- Klinixy brand gradient-like solid background (deep navy) -->
+    <item android:drawable="@color/klinixy_splash_bg" />
 
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
+    <!-- Centered Klinixy logo icon -->
+    <item>
         <bitmap
             android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+            android:src="@mipmap/ic_launcher" />
+    </item>
 </layer-list>

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:klinixy/core/theme/app_theme.dart';
 import 'package:klinixy/core/widgets/shared_widgets.dart';
 import 'package:klinixy/features/auth/domain/entities/user_entity.dart';
@@ -19,19 +21,38 @@ class ProfileScreen extends StatelessWidget {
           body: CustomScrollView(
             slivers: [
               // Header
-              SliverToBoxAdapter(
+                    SliverToBoxAdapter(
                 child: Container(
-                  color: AppColors.surface,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
                   child: SafeArea(
                     bottom: false,
                     child: Column(
                       children: [
                         Padding(
-                          padding: const EdgeInsets.all(AppSpacing.md),
+                          padding: const EdgeInsets.fromLTRB(
+                              AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.md),
                           child: Row(
                             children: [
-                              Text('Profile',
-                                  style: AppTextStyles.headlineLarge),
+                              // Klinixy logo in header
+                              SizedBox(
+                                height: 32,
+                                child: Image.asset(
+                                  'assets/images/klinixy_logo_transparent.png',
+                                  fit: BoxFit.contain,
+                                  alignment: Alignment.centerLeft,
+                                  color: AppColors.primary,
+                                  colorBlendMode: BlendMode.srcIn,
+                                ),
+                              ),
                               const Spacer(),
                               TapScale(
                                 onTap: () {},
@@ -41,9 +62,11 @@ class ProfileScreen extends StatelessWidget {
                                   decoration: BoxDecoration(
                                     color: AppColors.surfaceVariant,
                                     borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: AppColors.divider, width: 1),
                                   ),
                                   child: const Icon(Icons.settings_outlined,
-                                      color: AppColors.textSecondary, size: 22),
+                                      color: AppColors.textSecondary, size: 20),
                                 ),
                               ),
                             ],
@@ -84,11 +107,11 @@ class ProfileScreen extends StatelessWidget {
                             onTap: () {},
                           ),
                           const SizedBox(width: 12),
-                          _QuickAction(
+                           _QuickAction(
                             icon: Icons.location_on_rounded,
                             label: 'Addresses',
                             color: AppColors.accent,
-                            onTap: () {},
+                            onTap: () => context.push('/profile/addresses'),
                           ),
                           const SizedBox(width: 12),
                           _QuickAction(
@@ -119,7 +142,7 @@ class ProfileScreen extends StatelessWidget {
                           _MenuItem(
                             icon: Icons.person_outline_rounded,
                             label: 'Edit Profile',
-                            onTap: () {},
+                            onTap: () => _showEditProfileSheet(context, user),
                           ),
                           _MenuItem(
                             icon: Icons.notifications_outlined,
@@ -252,6 +275,157 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+
+  void _showEditProfileSheet(BuildContext context, UserEntity? user) {
+    if (user == null) return;
+    
+    final nameController = TextEditingController(text: user.name);
+    final phoneController = TextEditingController(text: user.phone ?? '');
+    final picker = ImagePicker();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(28),
+                  topRight: Radius.circular(28),
+                ),
+              ),
+              padding: EdgeInsets.only(
+                left: AppSpacing.lg,
+                right: AppSpacing.lg,
+                top: AppSpacing.lg,
+                bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.divider,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Edit Profile',
+                    style: AppTextStyles.headlineLarge,
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Photo selection
+                  Center(
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: AppColors.primaryLight,
+                          backgroundImage: user.photoUrl != null
+                              ? NetworkImage(user.photoUrl!)
+                              : null,
+                          child: user.photoUrl == null
+                              ? Text(
+                                  user.name.isNotEmpty ? user.name.substring(0, 1).toUpperCase() : 'U',
+                                  style: AppTextStyles.displayLarge.copyWith(
+                                    color: AppColors.primary,
+                                    fontSize: 36,
+                                  ),
+                                )
+                              : null,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: () async {
+                              final XFile? image = await picker.pickImage(
+                                source: ImageSource.gallery,
+                                imageQuality: 80,
+                              );
+                              if (image != null && context.mounted) {
+                                final bytes = await image.readAsBytes();
+                                if (context.mounted) {
+                                  context.read<AuthBloc>().add(
+                                        AuthUpdatePhotoRequested(bytes),
+                                      );
+                                  Navigator.pop(context);
+                                }
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  
+                  // Input fields
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Full Name',
+                      hintText: 'Enter your name',
+                      prefixIcon: Icon(Icons.person_outline_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone Number',
+                      hintText: 'Enter your phone number',
+                      prefixIcon: Icon(Icons.phone_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  
+                  // Save button
+                  KlinButton(
+                    label: 'Save Changes',
+                    onTap: () {
+                      context.read<AuthBloc>().add(
+                            AuthUpdateProfileRequested(
+                              name: nameController.text.trim(),
+                              phone: phoneController.text.trim(),
+                            ),
+                          );
+                      Navigator.pop(context);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 class _ProfileCard extends StatelessWidget {
@@ -268,81 +442,117 @@ class _ProfileCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.xl),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: AppColors.primary.withOpacity(0.30),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: AppColors.secondary.withOpacity(0.20),
+            blurRadius: 40,
+            offset: const Offset(0, 16),
           ),
         ],
       ),
-      child: Row(
+      child: Stack(
+        clipBehavior: Clip.hardEdge,
         children: [
-          CircleAvatar(
-            radius: 32,
-            backgroundColor: Colors.white.withValues(alpha: 0.2),
-            backgroundImage: user?.photoUrl != null
-                ? NetworkImage(user!.photoUrl!)
-                : null,
-            child: user?.photoUrl == null
-                ? Text(
-                    user?.name.substring(0, 1).toUpperCase() ?? 'U',
-                    style: AppTextStyles.headlineLarge.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  )
-                : null,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  user?.name ?? 'Klinixy User',
-                  style: AppTextStyles.headlineMedium.copyWith(
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  user?.email ?? '',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: Colors.white.withValues(alpha: 0.8),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                  ),
-                  child: Text(
-                    '🥇 Gold Member',
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          TapScale(
-            onTap: () {},
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
+          // Klinixy logo watermark
+          Positioned(
+            right: -8,
+            bottom: -8,
+            child: Opacity(
+              opacity: 0.08,
+              child: Image.asset(
+                'assets/images/klinixy_app_logo.png',
+                width: 90,
+                height: 90,
+                color: Colors.white,
+                colorBlendMode: BlendMode.srcIn,
               ),
-              child: const Icon(Icons.edit_rounded,
-                  color: Colors.white, size: 18),
             ),
+          ),
+          // Main row
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.30),
+                  shape: BoxShape.circle,
+                ),
+                child: CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Colors.white.withOpacity(0.15),
+                  backgroundImage: user?.photoUrl != null
+                      ? NetworkImage(user!.photoUrl!)
+                      : null,
+                  child: user?.photoUrl == null
+                      ? Text(
+                          user?.name.substring(0, 1).toUpperCase() ?? 'U',
+                          style: AppTextStyles.headlineLarge.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        )
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user?.name ?? 'Klinixy User',
+                      style: AppTextStyles.headlineMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      user?.email ?? '',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.22),
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                        border: Border.all(
+                            color: Colors.white.withOpacity(0.3), width: 1),
+                      ),
+                      child: Text(
+                        '🥇 Gold Member',
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TapScale(
+                onTap: () => (context.findAncestorWidgetOfExactType<ProfileScreen>() ?? const ProfileScreen())._showEditProfileSheet(context, user),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.20),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.edit_rounded,
+                      color: Colors.white, size: 18),
+                ),
+              ),
+            ],
           ),
         ],
       ),

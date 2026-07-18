@@ -10,6 +10,7 @@ import 'package:klinixy/features/orders/presentation/screens/order_history_scree
 import 'package:klinixy/features/orders/presentation/screens/order_success_screen.dart';
 import 'package:klinixy/features/orders/presentation/screens/order_tracking_screen.dart';
 import 'package:klinixy/features/product/presentation/screens/product_detail_screen.dart';
+import 'package:klinixy/features/profile/presentation/screens/address_management_screen.dart';
 import 'package:klinixy/features/search/presentation/screens/search_screen.dart';
 
 class AppRouter {
@@ -89,6 +90,11 @@ class AppRouter {
           path: '/orders',
           name: 'orders',
           builder: (_, __) => const OrderHistoryScreen(),
+        ),
+        GoRoute(
+          path: '/profile/addresses',
+          name: 'addresses',
+          builder: (_, __) => const AddressManagementScreen(),
         ),
       ],
     );

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Klinixy brand colors -->
+    <color name="klinixy_splash_bg">#0D2B6E</color>
+    <color name="klinixy_primary">#0D2B6E</color>
+    <color name="klinixy_cyan">#00C8F0</color>
+</resources>

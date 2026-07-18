@@ -15,15 +15,43 @@ class CartScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
           onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              size: 20, color: AppColors.textPrimary),
         ),
-        title: BlocBuilder<CartBloc, CartState>(
-          builder: (context, state) => Text(
-            'My Cart (${state.itemCount})',
-            style: AppTextStyles.headlineMedium,
-          ),
+        title: Row(
+          children: [
+            SizedBox(
+              height: 30,
+              child: Image.asset(
+                'assets/images/klinixy_app_logo_transparent.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(width: 10),
+            BlocBuilder<CartBloc, CartState>(
+              builder: (context, state) => RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Cart',
+                      style: AppTextStyles.headlineMedium,
+                    ),
+                    if (state.itemCount > 0)
+                      TextSpan(
+                        text: '  ${state.itemCount} item${state.itemCount > 1 ? 's' : ''}',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
         actions: [
           BlocBuilder<CartBloc, CartState>(
@@ -43,6 +71,10 @@ class CartScreen extends StatelessWidget {
             },
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: AppColors.divider),
+        ),
       ),
       body: BlocBuilder<CartBloc, CartState>(
         builder: (context, state) {
