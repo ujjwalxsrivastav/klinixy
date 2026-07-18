@@ -40,8 +40,10 @@
   <title>Klinixy — The Pulse of Digital Care</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- Google Maps JavaScript API (required for google_maps_flutter on web) -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAunmmtJVnI36BqnW8piPQFMPH_7h-Mzhw&libraries=places" defer></script>
+  <!-- Google Maps JavaScript API (loaded from the local .env value at runtime) -->
+  <script>
+    window.__GOOGLE_MAPS_API_KEY__ = window.__GOOGLE_MAPS_API_KEY__ || '';
+  </script>
 
   <!-- Splash screen background matching brand -->
   <style>

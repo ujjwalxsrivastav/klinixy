@@ -1,3 +1,22 @@
+import java.io.File
+
+val envFile = File(rootDir, ".env")
+val envValues = mutableMapOf<String, String>()
+
+if (envFile.exists()) {
+    envFile.forEachLine { line ->
+        val trimmed = line.trim()
+        if (trimmed.isNotEmpty() && !trimmed.startsWith("#")) {
+            val parts = trimmed.split("=", limit = 2)
+            if (parts.size == 2) {
+                envValues[parts[0].trim()] = parts[1].trim().removeSurrounding("\"")
+            }
+        }
+    }
+}
+
+val googleMapsApiKey = envValues["GOOGLE_MAPS_API_KEY"] ?: ""
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -23,6 +42,7 @@ android {
     }
 
     defaultConfig {
+        manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.softrion.klinixy"
         // You can update the following values to match your application needs.

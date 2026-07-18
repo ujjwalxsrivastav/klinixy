@@ -1,3 +1,5 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 // Core app constants
 class AppConstants {
   AppConstants._();
@@ -23,5 +25,5 @@ class AppConstants {
   static const int expressDeliveryMinutes = 30;
 
   // Google Maps
-  static const String googleMapsApiKey = 'AIzaSyAunmmtJVnI36BqnW8piPQFMPH_7h-Mzhw';
+  static String get googleMapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
 }

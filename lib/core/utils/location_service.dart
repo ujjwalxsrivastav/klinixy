@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:klinixy/core/utils/location_models.dart';
@@ -8,11 +9,8 @@ export 'package:klinixy/core/utils/location_models.dart';
 class LocationService {
   LocationService._();
 
-  // Mapbox public token. Set MAPBOX_PUBLIC_TOKEN at build time if needed.
-  static const String _mapboxToken = String.fromEnvironment(
-    'MAPBOX_PUBLIC_TOKEN',
-    defaultValue: 'YOUR_MAPBOX_PUBLIC_TOKEN',
-  );
+  // Mapbox public token loaded from the local .env file.
+  static String get _mapboxToken => dotenv.env['MAPBOX_PUBLIC_TOKEN'] ?? 'YOUR_MAPBOX_PUBLIC_TOKEN';
   static const String _mapboxGeocodingBase = 'https://api.mapbox.com/geocoding/v5/mapbox.places';
 
   // ─────────────────────────────────────────────────────────────────────────────
