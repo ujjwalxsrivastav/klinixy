@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:klinixy/core/theme/app_theme.dart';
 import 'package:klinixy/core/widgets/shared_widgets.dart';
 
@@ -39,7 +40,9 @@ class _CategoryItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TapScale(
-      onTap: () {},
+      onTap: () {
+        context.push('/search', extra: data.name.replaceAll('\n', ' '));
+      },
       child: Container(
         width: 76,
         margin: const EdgeInsets.symmetric(horizontal: 4),

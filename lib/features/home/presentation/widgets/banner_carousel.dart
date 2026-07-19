@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:go_router/go_router.dart';
 import 'package:klinixy/core/theme/app_theme.dart';
 import 'package:klinixy/core/widgets/shared_widgets.dart';
 
@@ -20,6 +21,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
       subtitle: 'Medicines at your doorstep, faster than ever',
       badge: '⚡ Express',
       gradient: AppColors.heroGradient,
+      query: 'Dolo',
     ),
     _BannerData(
       title: 'Up to 40% OFF\non Vitamins',
@@ -30,12 +32,14 @@ class _BannerCarouselState extends State<BannerCarousel> {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
+      query: 'Vitamin',
     ),
     _BannerData(
       title: 'Free Delivery\non ₹499+',
       subtitle: 'No delivery charges on orders above ₹499',
       badge: '🚚 Free Ship',
       gradient: AppColors.accentGradient,
+      query: 'Crocin',
     ),
   ];
 
@@ -107,21 +111,25 @@ class _BannerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 6),
-      decoration: BoxDecoration(
-        gradient: data.gradient,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        boxShadow: [
-          BoxShadow(
-            color: (data.gradient.colors.first).withOpacity(0.35),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
+    return TapScale(
+      onTap: () {
+        context.push('/search', extra: data.query);
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        decoration: BoxDecoration(
+          gradient: data.gradient,
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          boxShadow: [
+            BoxShadow(
+              color: (data.gradient.colors.first).withOpacity(0.35),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
           // Background decoration circles
           Positioned(
             right: -20,
@@ -232,7 +240,7 @@ class _BannerCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),);
   }
 }
 
@@ -241,11 +249,13 @@ class _BannerData {
   final String subtitle;
   final String badge;
   final LinearGradient gradient;
+  final String query;
 
   _BannerData({
     required this.title,
     required this.subtitle,
     required this.badge,
     required this.gradient,
+    required this.query,
   });
 }

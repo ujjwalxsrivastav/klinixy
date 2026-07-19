@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -16,6 +17,8 @@ import 'package:klinixy/features/profile/presentation/screens/profile_screen.dar
 import 'package:klinixy/features/search/presentation/screens/search_screen.dart';
 import 'package:klinixy/features/home/presentation/widgets/location_picker_sheet.dart';
 import 'package:klinixy/core/utils/location_service.dart';
+import 'package:klinixy/features/home/presentation/widgets/prescription_upload_sheet.dart';
+import 'package:klinixy/features/home/presentation/widgets/routine_quiz_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -162,9 +165,17 @@ class _HomeTab extends StatelessWidget {
         // Search bar
         const SliverToBoxAdapter(child: SizedBox(height: 16)),
         SliverToBoxAdapter(child: _SearchBar()),
+        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+        // Prescription Quick upload card
+        SliverToBoxAdapter(child: _PrescriptionQuickCard()),
+        const SliverToBoxAdapter(child: SizedBox(height: 12)),
+
+        // Personalized Quiz Finder Card
+        SliverToBoxAdapter(child: const _CareQuizCard()),
         const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-        // Express delivery info
+        // Express delivery info with live ticker
         SliverToBoxAdapter(child: _DeliveryBanner()),
         const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
@@ -172,11 +183,15 @@ class _HomeTab extends StatelessWidget {
         const SliverToBoxAdapter(child: BannerCarousel()),
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
+        // Trust Badges Grid
+        SliverToBoxAdapter(child: _TrustFactorsGrid()),
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
         // Categories
         SliverToBoxAdapter(
           child: SectionHeader(
             title: 'Shop by Category',
-            onSeeAll: () {},
+            onSeeAll: () => context.push('/search'),
           ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 14)),
@@ -192,7 +207,7 @@ class _HomeTab extends StatelessWidget {
           child: SectionHeader(
             title: 'Popular Medicines',
             subtitle: 'Best selling in your area',
-            onSeeAll: () {},
+            onSeeAll: () => context.push('/search', extra: 'Medicines'),
           ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 14)),
@@ -203,7 +218,7 @@ class _HomeTab extends StatelessWidget {
         SliverToBoxAdapter(
           child: SectionHeader(
             title: 'Health Essentials',
-            onSeeAll: () {},
+            onSeeAll: () => context.push('/search', extra: 'Vitamins'),
           ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 14)),
@@ -347,27 +362,33 @@ class _HomeAppBar extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               // Avatar with brand ring
-              Container(
-                padding: const EdgeInsets.all(2),
-                decoration: const BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  shape: BoxShape.circle,
-                ),
-                child: CircleAvatar(
-                  radius: 19,
-                  backgroundColor: AppColors.primaryLight,
-                  backgroundImage: user?.photoUrl != null
-                      ? NetworkImage(user!.photoUrl!)
-                      : null,
-                  child: user?.photoUrl == null
-                      ? Text(
-                          user?.name.substring(0, 1).toUpperCase() ?? 'U',
-                          style: AppTextStyles.titleMedium.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        )
-                      : null,
+              GestureDetector(
+                onTap: () {
+                  final homeState = context.findAncestorStateOfType<_HomeScreenState>();
+                  homeState?.setState(() => homeState._currentNavIndex = 3);
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    shape: BoxShape.circle,
+                  ),
+                  child: CircleAvatar(
+                    radius: 19,
+                    backgroundColor: AppColors.primaryLight,
+                    backgroundImage: user?.photoUrl != null
+                        ? NetworkImage(user!.photoUrl!)
+                        : null,
+                    child: user?.photoUrl == null
+                        ? Text(
+                            user?.name.substring(0, 1).toUpperCase() ?? 'U',
+                            style: AppTextStyles.titleMedium.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
               ),
             ],
@@ -425,13 +446,47 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
-class _DeliveryBanner extends StatelessWidget {
+class _DeliveryBanner extends StatefulWidget {
+  const _DeliveryBanner();
+
+  @override
+  State<_DeliveryBanner> createState() => _DeliveryBannerState();
+}
+
+class _DeliveryBannerState extends State<_DeliveryBanner> {
+  int _index = 0;
+  Timer? _timer;
+  final List<String> _updates = [
+    "🟢 Rider matching in Indiranagar: average 44 seconds",
+    "🟢 Delivered to Koramangala block 4 in 14 mins!",
+    "🟢 Prescription approved by RPh panel in 2 mins!",
+    "🟢 Delivered to HSR Layout Sector 3 in 18 mins!",
+    "🟢 Average dispatch time in your area: 2.8 mins",
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (mounted) {
+        setState(() {
+          _index = (_index + 1) % _updates.length;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -445,37 +500,70 @@ class _DeliveryBanner extends StatelessWidget {
             width: 1,
           ),
         ),
-        child: Row(
+        child: Column(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.bolt_rounded,
-                  color: Colors.white, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
                 children: [
-                  Text(
-                    'Express Delivery Active 🎉',
-                    style: AppTextStyles.titleMedium.copyWith(
-                      color: AppColors.textPrimary,
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.bolt_rounded,
+                        color: Colors.white, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Express Delivery Active 🎉',
+                          style: AppTextStyles.titleMedium.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          'Medicines delivered in 30 minutes',
+                          style: AppTextStyles.bodySmall,
+                        ),
+                      ],
                     ),
                   ),
-                  Text(
-                    'Medicines delivered in 30 minutes',
-                    style: AppTextStyles.bodySmall,
+                  const ExpressBadge(),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: AppColors.divider),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: AppColors.surfaceVariant.withOpacity(0.5),
+              child: Row(
+                children: [
+                  const Icon(Icons.radio_button_checked, size: 12, color: AppColors.success),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 500),
+                      child: Text(
+                        _updates[_index],
+                        key: ValueKey<int>(_index),
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-            const ExpressBadge(),
           ],
         ),
       ),
@@ -555,6 +643,326 @@ class _NavItem extends StatelessWidget {
                       : FontWeight.w500,
                   fontSize: 10,
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PrescriptionQuickCard extends StatelessWidget {
+  const _PrescriptionQuickCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: TapScale(
+        onTap: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => const PrescriptionUploadSheet(),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.primary, Color(0xFF1E3A8A)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withOpacity(0.25),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.document_scanner_rounded,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Quick Order with Prescription',
+                          style: AppTextStyles.titleMedium.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondary,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'NEW',
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Scan doc & get meds matched in 3 mins',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: Colors.white.withOpacity(0.85),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TrustFactorsGrid extends StatelessWidget {
+  const _TrustFactorsGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Why Choose Klinixy?',
+            style: AppTextStyles.headlineSmall,
+          ),
+          const SizedBox(height: 12),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 2.8,
+            children: [
+              _buildTrustCard(
+                icon: Icons.flash_on_rounded,
+                color: AppColors.secondary,
+                title: '30-Min Delivery',
+                subtitle: 'Superfast and free above ₹499',
+              ),
+              _buildTrustCard(
+                icon: Icons.verified_user_rounded,
+                color: AppColors.success,
+                title: '100% Genuine',
+                subtitle: 'Directly from licensed stores',
+              ),
+              _buildTrustCard(
+                icon: Icons.health_and_safety_rounded,
+                color: AppColors.primary,
+                title: 'RPh Verified',
+                subtitle: 'Pharmacist-approved doses',
+              ),
+              _buildTrustCard(
+                icon: Icons.support_agent_rounded,
+                color: const Color(0xFF7C3AED),
+                title: '24/7 Support',
+                subtitle: 'Registered medical help',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrustCard({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.divider),
+        boxShadow: AppShadows.card,
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.labelMedium.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textHint,
+                    fontSize: 8.5,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CareQuizCard extends StatelessWidget {
+  const _CareQuizCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: TapScale(
+        onTap: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => const RoutineQuizSheet(),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF7C3AED), Color(0xFFC084FC)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF7C3AED).withOpacity(0.25),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Care Routine Finder',
+                          style: AppTextStyles.titleMedium.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'QUIZ',
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Match custom skincare, haircare & bodycare routines',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: Colors.white.withOpacity(0.85),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white,
+                size: 16,
               ),
             ],
           ),

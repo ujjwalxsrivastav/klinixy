@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:klinixy/core/theme/app_theme.dart';
 import 'package:klinixy/core/widgets/shared_widgets.dart';
 import 'package:klinixy/features/auth/domain/entities/user_entity.dart';
 import 'package:klinixy/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:klinixy/features/cart/presentation/bloc/cart_bloc.dart';
+import 'package:klinixy/features/product/presentation/bloc/wishlist_bloc.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -55,7 +59,7 @@ class ProfileScreen extends StatelessWidget {
                               ),
                               const Spacer(),
                               TapScale(
-                                onTap: () {},
+                                onTap: () => _showSettingsSheet(context),
                                 child: Container(
                                   width: 40,
                                   height: 40,
@@ -97,14 +101,14 @@ class ProfileScreen extends StatelessWidget {
                             icon: Icons.receipt_long_rounded,
                             label: 'My Orders',
                             color: AppColors.primary,
-                            onTap: () {},
+                            onTap: () => context.push('/orders'),
                           ),
                           const SizedBox(width: 12),
                           _QuickAction(
                             icon: Icons.favorite_rounded,
                             label: 'Wishlist',
                             color: AppColors.error,
-                            onTap: () {},
+                            onTap: () => _showWishlistSheet(context),
                           ),
                           const SizedBox(width: 12),
                            _QuickAction(
@@ -118,7 +122,7 @@ class ProfileScreen extends StatelessWidget {
                             icon: Icons.description_rounded,
                             label: 'Prescriptions',
                             color: AppColors.secondary,
-                            onTap: () {},
+                            onTap: () => _showPrescriptionsSheet(context, user),
                           ),
                         ],
                       ),
@@ -147,7 +151,7 @@ class ProfileScreen extends StatelessWidget {
                           _MenuItem(
                             icon: Icons.notifications_outlined,
                             label: 'Notifications',
-                            onTap: () {},
+                            onTap: () => _showNotificationsSheet(context),
                             trailing: Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 4),
@@ -167,12 +171,12 @@ class ProfileScreen extends StatelessWidget {
                           _MenuItem(
                             icon: Icons.credit_card_rounded,
                             label: 'Payment Methods',
-                            onTap: () {},
+                            onTap: () => _showPaymentMethodsSheet(context),
                           ),
                           _MenuItem(
                             icon: Icons.support_agent_rounded,
                             label: 'Help & Support',
-                            onTap: () {},
+                            onTap: () => _showHelpSupportSheet(context),
                           ),
                         ],
                       ),
@@ -184,12 +188,12 @@ class ProfileScreen extends StatelessWidget {
                           _MenuItem(
                             icon: Icons.policy_outlined,
                             label: 'Privacy Policy',
-                            onTap: () {},
+                            onTap: () => _showLegalDialog(context, 'Privacy Policy', _privacyPolicyContent),
                           ),
                           _MenuItem(
                             icon: Icons.description_outlined,
                             label: 'Terms of Service',
-                            onTap: () {},
+                            onTap: () => _showLegalDialog(context, 'Terms of Service', _termsOfServiceContent),
                           ),
                         ],
                       ),
@@ -276,149 +280,710 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void _showWishlistSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('My Wishlist', style: AppTextStyles.headlineMedium),
+            const SizedBox(height: 16),
+            Expanded(
+              child: BlocBuilder<WishlistBloc, WishlistState>(
+                builder: (context, state) {
+                  if (state.items.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.favorite_border_rounded,
+                              size: 64, color: AppColors.error),
+                          const SizedBox(height: 16),
+                          Text('Your Wishlist is Empty',
+                              style: AppTextStyles.headlineSmall),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Save your favorite items here to purchase later!',
+                            style: AppTextStyles.bodyMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    itemCount: state.items.length,
+                    separatorBuilder: (_, __) => const AppDivider(),
+                    itemBuilder: (context, index) {
+                      final product = state.items[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          ctx.push('/product/${product.id}');
+                        },
+                        child: Row(
+                          children: [
+                            // Product Image
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceVariant,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: product.imageUrls.isNotEmpty
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Image.network(
+                                        product.imageUrls.first,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : const Icon(Icons.medication_rounded,
+                                      color: AppColors.primary, size: 28),
+                            ),
+                            const SizedBox(width: 12),
+                            // Details
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    product.name,
+                                    style: AppTextStyles.titleMedium,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    product.brand,
+                                    style: AppTextStyles.bodySmall,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '₹${product.price.toStringAsFixed(0)}',
+                                    style: AppTextStyles.titleMedium.copyWith(
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Action Row
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Add to cart
+                                TapScale(
+                                  onTap: () {
+                                    context.read<CartBloc>().add(CartAddItem(product));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('${product.name} added to cart! 🛒'),
+                                        duration: const Duration(seconds: 1),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      gradient: AppColors.primaryGradient,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'Add',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // Delete from wishlist
+                                TapScale(
+                                  onTap: () {
+                                    context.read<WishlistBloc>().add(
+                                        WishlistToggleItem(product));
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.error.withValues(alpha: 0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.delete_outline_rounded,
+                                      color: AppColors.error,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPrescriptionsSheet(BuildContext context, UserEntity? user) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('My Prescriptions', style: AppTextStyles.headlineSmall),
+            const SizedBox(height: 16),
+            Expanded(
+              child: user == null
+                  ? _buildEmptyPrescriptions()
+                  : StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('prescriptions')
+                          .where('userId', isEqualTo: user.uid)
+                          .orderBy('uploadedAt', descending: true)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                        final docs = snapshot.data?.docs ?? [];
+                        if (docs.isEmpty) {
+                          return _buildEmptyPrescriptions();
+                        }
+                        return ListView.builder(
+                          itemCount: docs.length,
+                          itemBuilder: (context, i) {
+                            final doc = docs[i].data() as Map<String, dynamic>;
+                            final medicines = doc['matchedMedicines'] as List<dynamic>? ?? [];
+                            final dateTimestamp = doc['uploadedAt'] as Timestamp?;
+                            final date = dateTimestamp != null ? dateTimestamp.toDate() : DateTime.now();
+                            final status = doc['status'] as String? ?? 'pending_verification';
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceVariant,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.divider),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 20),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Uploaded ${DateFormat('dd MMM, hh:mm a').format(date)}',
+                                        style: AppTextStyles.titleMedium.copyWith(fontSize: 13),
+                                      ),
+                                      const Spacer(),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: status == 'pending_verification'
+                                              ? Colors.amber.withOpacity(0.1)
+                                              : AppColors.success.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          status == 'pending_verification' ? 'Reviewing' : 'Approved',
+                                          style: AppTextStyles.labelSmall.copyWith(
+                                            color: status == 'pending_verification' ? Colors.amber[800] : AppColors.success,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    'Meds Extracted: ${medicines.map((m) => m['name']).join(', ')}',
+                                    style: AppTextStyles.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyPrescriptions() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.description_outlined, size: 48, color: AppColors.textHint),
+        const SizedBox(height: 12),
+        Text('No Uploaded Prescriptions', style: AppTextStyles.titleMedium.copyWith(color: AppColors.textSecondary)),
+        const SizedBox(height: 4),
+        Text('Upload a doctor prescription slip on the home page to quick order!', style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
+      ],
+    );
+  }
+
+  void _showHelpSupportSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Help & Support', style: AppTextStyles.headlineSmall),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.primary),
+              title: const Text('Live Chat Support'),
+              subtitle: const Text('Chat with our registered pharmacist'),
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Starting chat support...')),
+                );
+              },
+            ),
+            const AppDivider(),
+            ListTile(
+              leading: const Icon(Icons.phone_in_talk_outlined, color: AppColors.success),
+              title: const Text('Call Helpline (Toll-Free)'),
+              subtitle: const Text('1800-300-4560 (24/7 Care)'),
+              onTap: () {},
+            ),
+            const AppDivider(),
+            ListTile(
+              leading: const Icon(Icons.email_outlined, color: Colors.purple),
+              title: const Text('Email Support'),
+              subtitle: const Text('support@klinixy.com'),
+              onTap: () {},
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPaymentMethodsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Center(child: Text('Payment Methods', style: AppTextStyles.headlineSmall)),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0F2027), Color(0xFF203A43)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Klinixy Express Card', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                  const SizedBox(height: 10),
+                  const Text('•••• •••• •••• 4256', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text('VALUED MEMBER', style: TextStyle(color: Colors.white70, fontSize: 9)),
+                      Text('EXP: 12/29', style: TextStyle(color: Colors.white70, fontSize: 9)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.add_circle_outline_rounded, color: AppColors.primary),
+              title: const Text('Add Credit or Debit Card'),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.wallet_giftcard_rounded, color: AppColors.secondary),
+              title: const Text('Klinixy Wallet Balance (₹0.00)'),
+              onTap: () {},
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showNotificationsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Notifications', style: AppTextStyles.headlineSmall),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: AppColors.primaryLight,
+                child: Icon(Icons.bolt_rounded, color: AppColors.primary, size: 20),
+              ),
+              title: const Text('Express Delivery Dispatched'),
+              subtitle: const Text('Your order has been matched with a rider near Indiranagar'),
+            ),
+            const AppDivider(),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Color(0xFFDCFCE7),
+                child: Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
+              ),
+              title: const Text('Prescription Approved'),
+              subtitle: const Text('Pharmacist verified Dolo 650 dosage match successfully'),
+            ),
+            const AppDivider(),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Color(0xFFFEF3C7),
+                child: Icon(Icons.discount_rounded, color: AppColors.secondary, size: 20),
+              ),
+              title: const Text('Welcome Coupon Added!'),
+              subtitle: const Text('Get extra 20% discount on prescription uploads'),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLegalDialog(BuildContext context, String title, String content) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+        title: Text(title, style: AppTextStyles.headlineSmall),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 200,
+          child: SingleChildScrollView(
+            child: Text(
+              content,
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static const String _privacyPolicyContent =
+      "Your privacy is important to us. Klinixy is committed to protecting the confidentiality and security of your personal health data in compliance with HIPAA guidelines. We secure your uploaded prescriptions, payment cards, and search histories. No data is shared with third parties without your explicit consent.";
+
+  static const String _termsOfServiceContent =
+      "By using Klinixy, you agree to our Terms of Service. Prescriptions uploaded must be valid, current, and issued by registered medical practitioners. Delivery speeds of 30 minutes are target averages and may fluctuate depending on weather conditions or rider availability. We offer a full refund if delivery exceeds target times.";
+
+  void _showSettingsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _SettingsSheet(),
+    );
+  }
+
   void _showEditProfileSheet(BuildContext context, UserEntity? user) {
-    if (user == null) return;
-    
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to edit your profile')),
+      );
+      return;
+    }
+
     final nameController = TextEditingController(text: user.name);
     final phoneController = TextEditingController(text: user.phone ?? '');
-    final picker = ImagePicker();
+    // Capture the bloc before opening the sheet so we don't lose context
+    final authBloc = context.read<AuthBloc>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (sheetContext) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(28),
-                  topRight: Radius.circular(28),
-                ),
-              ),
+          builder: (sheetContext, setModalState) {
+            bool isSaving = false;
+
+            return Padding(
               padding: EdgeInsets.only(
-                left: AppSpacing.lg,
-                right: AppSpacing.lg,
-                top: AppSpacing.lg,
-                bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.divider,
-                        borderRadius: BorderRadius.circular(2),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(28),
+                    topRight: Radius.circular(28),
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.lg),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.divider,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Edit Profile',
-                    style: AppTextStyles.headlineLarge,
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Photo selection
-                  Center(
-                    child: Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundColor: AppColors.primaryLight,
-                          backgroundImage: user.photoUrl != null
-                              ? NetworkImage(user.photoUrl!)
-                              : null,
-                          child: user.photoUrl == null
-                              ? Text(
-                                  user.name.isNotEmpty ? user.name.substring(0, 1).toUpperCase() : 'U',
-                                  style: AppTextStyles.displayLarge.copyWith(
-                                    color: AppColors.primary,
-                                    fontSize: 36,
-                                  ),
-                                )
-                              : null,
+                    const SizedBox(height: 20),
+                    Text('Edit Profile', style: AppTextStyles.headlineLarge),
+                    const SizedBox(height: 24),
+
+                    // Avatar
+                    Center(
+                      child: CircleAvatar(
+                        radius: 45,
+                        backgroundColor: AppColors.primaryLight,
+                        backgroundImage: user.photoUrl != null
+                            ? NetworkImage(user.photoUrl!)
+                            : null,
+                        child: user.photoUrl == null
+                            ? Text(
+                                user.name.isNotEmpty
+                                    ? user.name.substring(0, 1).toUpperCase()
+                                    : 'U',
+                                style: AppTextStyles.displayLarge.copyWith(
+                                  color: AppColors.primary,
+                                  fontSize: 36,
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // Name field
+                    TextField(
+                      controller: nameController,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
+                        labelText: 'Full Name',
+                        hintText: 'Enter your name',
+                        prefixIcon: const Icon(Icons.person_outline_rounded),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: GestureDetector(
-                            onTap: () async {
-                              final XFile? image = await picker.pickImage(
-                                source: ImageSource.gallery,
-                                imageQuality: 80,
-                              );
-                              if (image != null && context.mounted) {
-                                final bytes = await image.readAsBytes();
-                                if (context.mounted) {
-                                  context.read<AuthBloc>().add(
-                                        AuthUpdatePhotoRequested(bytes),
-                                      );
-                                  Navigator.pop(context);
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.divider),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Phone field
+                    TextField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        hintText: '+91 98765 43210',
+                        prefixIcon: const Icon(Icons.phone_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.divider),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // Save button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: isSaving
+                            ? null
+                            : () {
+                                final name = nameController.text.trim();
+                                final phone = phoneController.text.trim();
+                                if (name.isEmpty) {
+                                  scaffoldMessenger.showSnackBar(
+                                    const SnackBar(content: Text('Name cannot be empty')),
+                                  );
+                                  return;
                                 }
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(
-                                color: AppColors.primary,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt_rounded,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                            ),
+                                authBloc.add(AuthUpdateProfileRequested(
+                                  name: name,
+                                  phone: phone.isNotEmpty ? phone : null,
+                                ));
+                                Navigator.of(sheetContext).pop();
+                                scaffoldMessenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Profile updated successfully! ✓'),
+                                    backgroundColor: AppColors.success,
+                                  ),
+                                );
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                      ],
+                        child: const Text(
+                          'Save Changes',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 28),
-                  
-                  // Input fields
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Full Name',
-                      hintText: 'Enter your name',
-                      prefixIcon: Icon(Icons.person_outline_rounded),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: phoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Phone Number',
-                      hintText: 'Enter your phone number',
-                      prefixIcon: Icon(Icons.phone_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  
-                  // Save button
-                  KlinButton(
-                    label: 'Save Changes',
-                    onTap: () {
-                      context.read<AuthBloc>().add(
-                            AuthUpdateProfileRequested(
-                              name: nameController.text.trim(),
-                              phone: phoneController.text.trim(),
-                            ),
-                          );
-                      Navigator.pop(context);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                ],
+                    const SizedBox(height: 12),
+                  ],
+                ),
               ),
             );
           },
@@ -427,6 +992,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 }
+
 
 class _ProfileCard extends StatelessWidget {
   final UserEntity? user;
@@ -608,6 +1174,87 @@ class _QuickAction extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SettingsSheet extends StatefulWidget {
+  @override
+  State<_SettingsSheet> createState() => _SettingsSheetState();
+}
+
+class _SettingsSheetState extends State<_SettingsSheet> {
+  bool _pushNotifications = true;
+  bool _orderUpdates = true;
+  bool _promotionalEmails = false;
+  String _selectedLanguage = 'English';
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.divider,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('Settings', style: AppTextStyles.headlineSmall),
+          const SizedBox(height: 20),
+          _buildToggle('Push Notifications', Icons.notifications_active_rounded,
+              _pushNotifications, (v) => setState(() => _pushNotifications = v)),
+          const AppDivider(),
+          _buildToggle('Order Updates (SMS)', Icons.sms_rounded,
+              _orderUpdates, (v) => setState(() => _orderUpdates = v)),
+          const AppDivider(),
+          _buildToggle('Promotional Emails', Icons.email_rounded,
+              _promotionalEmails, (v) => setState(() => _promotionalEmails = v)),
+          const AppDivider(),
+          ListTile(
+            leading: const Icon(Icons.language_rounded, color: AppColors.primary),
+            title: const Text('Language'),
+            trailing: DropdownButton<String>(
+              value: _selectedLanguage,
+              underline: const SizedBox(),
+              items: ['English', 'Hindi', 'Kannada', 'Tamil']
+                  .map((l) => DropdownMenuItem(value: l, child: Text(l, style: AppTextStyles.bodySmall)))
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedLanguage = v!),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'App Version 1.0.0',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textHint),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggle(String label, IconData icon, bool value, ValueChanged<bool> onChanged) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.primary),
+      title: Text(label),
+      trailing: Switch.adaptive(
+        value: value,
+        onChanged: onChanged,
+        activeColor: AppColors.primary,
       ),
     );
   }

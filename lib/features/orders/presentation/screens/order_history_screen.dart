@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:klinixy/core/theme/app_theme.dart';
 import 'package:klinixy/core/utils/app_constants.dart';
 import 'package:klinixy/core/widgets/shared_widgets.dart';
+import 'package:klinixy/features/product/domain/entities/product_entity.dart';
 import 'package:intl/intl.dart';
 
 class OrderHistoryScreen extends StatelessWidget {
@@ -45,43 +46,63 @@ class OrderHistoryScreen extends StatelessWidget {
       ),
       body: uid == null
           ? const _LoginPrompt()
-          : StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection(AppConstants.ordersCollection)
-                  .where('userId', isEqualTo: uid)
-                  .orderBy('placedAt', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const _LoadingOrders();
-                }
+          : _OrdersList(uid: uid),
+    );
+  }
+}
 
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Something went wrong.\nPlease try again.',
-                      style: AppTextStyles.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                  );
-                }
+class _OrdersList extends StatelessWidget {
+  final String uid;
+  const _OrdersList({required this.uid});
 
-                final docs = snapshot.data?.docs ?? [];
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection(AppConstants.ordersCollection)
+            .where('userId', isEqualTo: uid)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const _LoadingOrders();
+          }
 
-                if (docs.isEmpty) {
-                  return const _EmptyOrders();
-                }
+          if (snapshot.hasError) {
+            debugPrint('Orders error: ${snapshot.error}');
+            // Likely missing composite index — show empty state
+            return const _EmptyOrders();
+          }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  itemCount: docs.length,
-                  itemBuilder: (context, index) {
-                    final data = docs[index].data() as Map<String, dynamic>;
-                    return _OrderCard(data: data);
-                  },
-                );
-              },
-            ),
+          final docs = snapshot.data?.docs ?? [];
+
+          if (docs.isEmpty) {
+            return const _EmptyOrders();
+          }
+
+          // Sort locally since composite index may not exist
+          final sortedDocs = List<QueryDocumentSnapshot>.from(docs);
+          sortedDocs.sort((a, b) {
+            final aDate = DateTime.tryParse(
+                    (a.data() as Map<String, dynamic>)['placedAt'] as String? ??
+                        '') ??
+                DateTime(2000);
+            final bDate = DateTime.tryParse(
+                    (b.data() as Map<String, dynamic>)['placedAt'] as String? ??
+                        '') ??
+                DateTime(2000);
+            return bDate.compareTo(aDate); // descending
+          });
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            itemCount: sortedDocs.length,
+            itemBuilder: (context, index) {
+              final data =
+                  sortedDocs[index].data() as Map<String, dynamic>;
+              return _OrderCard(data: data);
+            },
+          );
+        },
     );
   }
 }
@@ -187,15 +208,39 @@ class _OrderCard extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Row(
                           children: [
-                            Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryLight,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Icon(Icons.medication_rounded,
-                                  color: AppColors.primary, size: 14),
+                            Builder(
+                              builder: (context) {
+                                final String? prodId = item['productId'] as String?;
+                                final matchingProduct = MockProducts.all.firstWhere(
+                                  (p) => p.id == prodId,
+                                  orElse: () => MockProducts.all.first,
+                                );
+                                return Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                    color: matchingProduct.imageUrls.isEmpty ? AppColors.primaryLight : null,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: matchingProduct.imageUrls.isNotEmpty
+                                      ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(6),
+                                          child: Image.network(
+                                            matchingProduct.imageUrls.first,
+                                            fit: BoxFit.cover,
+                                            width: 28,
+                                            height: 28,
+                                            errorBuilder: (_, __, ___) => const Icon(
+                                              Icons.medication_rounded,
+                                              color: AppColors.primary,
+                                              size: 14,
+                                            ),
+                                          ),
+                                        )
+                                      : const Icon(Icons.medication_rounded,
+                                          color: AppColors.primary, size: 14),
+                                );
+                              }
                             ),
                             const SizedBox(width: 8),
                             Expanded(

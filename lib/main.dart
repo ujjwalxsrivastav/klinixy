@@ -8,6 +8,7 @@ import 'package:klinixy/core/router/app_router.dart';
 import 'package:klinixy/core/theme/app_theme.dart';
 import 'package:klinixy/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:klinixy/features/cart/presentation/bloc/cart_bloc.dart';
+import 'package:klinixy/features/product/presentation/bloc/wishlist_bloc.dart';
 import 'package:klinixy/firebase_options.dart';
 
 void main() async {
@@ -28,7 +29,8 @@ void main() async {
   ]);
 
   // Load environment variables before using app config
-  await dotenv.load(fileName: '.env');
+  await dotenv.load(fileName: 'assets/env.txt');
+ 
 
   // Initialize Firebase
   await Firebase.initializeApp(
@@ -51,18 +53,21 @@ class KlinixApp extends StatefulWidget {
 class _KlinixAppState extends State<KlinixApp> {
   late final AuthBloc _authBloc;
   late final CartBloc _cartBloc;
+  late final WishlistBloc _wishlistBloc;
 
   @override
   void initState() {
     super.initState();
     _authBloc = sl<AuthBloc>();
     _cartBloc = sl<CartBloc>();
+    _wishlistBloc = sl<WishlistBloc>();
   }
 
   @override
   void dispose() {
     _authBloc.close();
     _cartBloc.close();
+    _wishlistBloc.close();
     super.dispose();
   }
 
@@ -72,6 +77,7 @@ class _KlinixAppState extends State<KlinixApp> {
       providers: [
         BlocProvider.value(value: _authBloc),
         BlocProvider.value(value: _cartBloc),
+        BlocProvider.value(value: _wishlistBloc),
       ],
       child: Builder(
         builder: (context) {

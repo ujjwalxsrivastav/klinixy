@@ -1,6 +1,9 @@
 import 'dart:typed_data';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:klinixy/core/utils/app_constants.dart';
 import 'package:klinixy/features/auth/domain/entities/user_entity.dart';
 import 'package:klinixy/features/auth/domain/repositories/auth_repository.dart';
 
@@ -17,6 +20,10 @@ class AuthCheckRequested extends AuthEvent {
 
 class AuthGoogleSignInRequested extends AuthEvent {
   const AuthGoogleSignInRequested();
+}
+
+class AuthGuestSignInRequested extends AuthEvent {
+  const AuthGuestSignInRequested();
 }
 
 class AuthSignOutRequested extends AuthEvent {
@@ -100,6 +107,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc(this._authRepository) : super(const AuthInitial()) {
     on<AuthCheckRequested>(_onCheckAuth);
     on<AuthGoogleSignInRequested>(_onGoogleSignIn);
+    on<AuthGuestSignInRequested>(_onGuestSignIn);
     on<AuthSignOutRequested>(_onSignOut);
     on<AuthUpdateProfileRequested>(_onUpdateProfile);
     on<AuthUpdatePhotoRequested>(_onUpdatePhoto);
@@ -112,7 +120,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading());
     try {
-      final user = await _authRepository.getCurrentUser();
+      final user = await _authRepository
+          .getCurrentUser()
+          .timeout(const Duration(milliseconds: 1500));
       if (user != null) {
         emit(AuthAuthenticated(user));
       } else {
@@ -129,10 +139,57 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading());
     try {
-      final user = await _authRepository.signInWithGoogle();
+      final user = await _authRepository
+          .signInWithGoogle()
+          .timeout(const Duration(seconds: 8));
       emit(AuthAuthenticated(user));
     } catch (e) {
       emit(AuthError(e.toString().replaceAll('Exception: ', '')));
+    }
+  }
+
+  Future<void> _onGuestSignIn(
+    AuthGuestSignInRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    try {
+      // Set a short timeout for network operations
+      final userCredential = await FirebaseAuth.instance
+          .signInAnonymously()
+          .timeout(const Duration(seconds: 3));
+      final user = userCredential.user!;
+      
+      final docRef = FirebaseFirestore.instance
+          .collection(AppConstants.usersCollection)
+          .doc(user.uid);
+      final doc = await docRef.get().timeout(const Duration(seconds: 2));
+      
+      late final UserEntity userEntity;
+      if (!doc.exists) {
+        userEntity = UserEntity(
+          uid: user.uid,
+          name: 'Demo Guest Patient',
+          email: 'demo.patient@klinixy.com',
+          photoUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+          createdAt: DateTime.now(),
+        );
+        await docRef.set(userEntity.toMap());
+      } else {
+        userEntity = UserEntity.fromMap(doc.data()!);
+      }
+      
+      emit(AuthAuthenticated(userEntity));
+    } catch (e) {
+      // Fallback: If Firebase fails or times out, immediately log the user in with a local guest session
+      final fallbackUser = UserEntity(
+        uid: 'local_guest_uid',
+        name: 'Demo Guest Patient (Offline Mode)',
+        email: 'guest@klinixy.com',
+        photoUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+        createdAt: DateTime.now(),
+      );
+      emit(AuthAuthenticated(fallbackUser));
     }
   }
 

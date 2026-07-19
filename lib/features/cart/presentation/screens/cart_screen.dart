@@ -168,44 +168,57 @@ class _CartItemCard extends StatelessWidget {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
+              gradient: item.product.imageUrls.isEmpty ? LinearGradient(
                 colors: [
                   AppColors.primary.withValues(alpha: 0.08),
                   AppColors.secondary.withValues(alpha: 0.08),
                 ],
-              ),
+              ) : null,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: item.product.requiresPrescription
-                ? Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      const Icon(Icons.medication_rounded,
-                          color: AppColors.primary, size: 32),
-                      Positioned(
-                        bottom: 4,
-                        right: 4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.error,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'Rx',
-                            style: AppTextStyles.labelSmall.copyWith(
-                              color: Colors.white,
-                              fontSize: 8,
-                              fontWeight: FontWeight.w900,
-                            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                item.product.imageUrls.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          item.product.imageUrls.first,
+                          fit: BoxFit.cover,
+                          width: 56,
+                          height: 56,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.medication_rounded,
+                            color: AppColors.primary,
+                            size: 32,
                           ),
                         ),
+                      )
+                    : const Icon(Icons.medication_rounded,
+                        color: AppColors.primary, size: 32),
+                if (item.product.requiresPrescription)
+                  Positioned(
+                    bottom: 4,
+                    right: 4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.error,
+                        borderRadius: BorderRadius.circular(4),
                       ),
-                    ],
-                  )
-                : const Icon(Icons.medication_rounded,
-                    color: AppColors.primary, size: 32),
+                      child: Text(
+                        'Rx',
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
 
           const SizedBox(width: 12),

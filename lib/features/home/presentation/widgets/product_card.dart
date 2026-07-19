@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:klinixy/core/theme/app_theme.dart';
 import 'package:klinixy/core/widgets/shared_widgets.dart';
 import 'package:klinixy/features/cart/presentation/bloc/cart_bloc.dart';
+import 'package:klinixy/features/product/presentation/bloc/wishlist_bloc.dart';
 import 'package:klinixy/features/product/domain/entities/product_entity.dart';
 
 class ProductCard extends StatelessWidget {
@@ -19,6 +20,7 @@ class ProductCard extends StatelessWidget {
     final double mrp;
     final int discount;
     final String? productId;
+    final List<String> imageUrls;
 
     if (product is ProductEntity) {
       final p = product as ProductEntity;
@@ -28,6 +30,7 @@ class ProductCard extends StatelessWidget {
       mrp = p.mrp;
       discount = p.discount;
       productId = p.id;
+      imageUrls = p.imageUrls;
     } else {
       name = product.name as String;
       brand = product.brand as String;
@@ -35,6 +38,7 @@ class ProductCard extends StatelessWidget {
       mrp = product.mrp as double;
       discount = product.discount as int;
       productId = null;
+      imageUrls = [];
     }
 
     return TapScale(
@@ -67,19 +71,32 @@ class ProductCard extends StatelessWidget {
                       width: 70,
                       height: 70,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
+                        gradient: imageUrls.isEmpty ? LinearGradient(
                           colors: [
                             AppColors.primary.withValues(alpha: 0.1),
                             AppColors.secondary.withValues(alpha: 0.1),
                           ],
-                        ),
+                        ) : null,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
-                        Icons.medication_rounded,
-                        color: AppColors.primary,
-                        size: 36,
-                      ),
+                      child: imageUrls.isNotEmpty
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                imageUrls.first,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.medication_rounded,
+                                  color: AppColors.primary,
+                                  size: 36,
+                                ),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.medication_rounded,
+                              color: AppColors.primary,
+                              size: 36,
+                            ),
                     ),
                   ),
                   if (discount > 0)
@@ -91,19 +108,40 @@ class ProductCard extends StatelessWidget {
                   Positioned(
                     top: 8,
                     right: 8,
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: AppShadows.card,
-                      ),
-                      child: const Icon(
-                        Icons.favorite_border_rounded,
-                        size: 15,
-                        color: AppColors.textSecondary,
-                      ),
+                    child: BlocBuilder<WishlistBloc, WishlistState>(
+                      builder: (context, wishlistState) {
+                        final isWish = productId != null && wishlistState.isWishlisted(productId);
+                        return TapScale(
+                          onTap: () {
+                            if (product is ProductEntity) {
+                              context.read<WishlistBloc>().add(WishlistToggleItem(product as ProductEntity));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(isWish
+                                      ? 'Removed from Wishlist'
+                                      : 'Added to Wishlist! ❤️'),
+                                  duration: const Duration(seconds: 1),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          },
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: AppShadows.card,
+                            ),
+                            child: Icon(
+                              isWish ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                              size: 15,
+                              color: isWish ? AppColors.error : AppColors.textSecondary,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],

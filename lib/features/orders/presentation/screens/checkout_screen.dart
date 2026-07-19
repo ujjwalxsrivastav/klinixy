@@ -381,11 +381,26 @@ class _OrderSummaryCard extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
+                        color: item.product.imageUrls.isEmpty ? AppColors.primaryLight : null,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.medication_rounded,
-                          color: AppColors.primary, size: 18),
+                      child: item.product.imageUrls.isNotEmpty
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                item.product.imageUrls.first,
+                                fit: BoxFit.cover,
+                                width: 36,
+                                height: 36,
+                                errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.medication_rounded,
+                                  color: AppColors.primary,
+                                  size: 18,
+                                ),
+                              ),
+                            )
+                          : const Icon(Icons.medication_rounded,
+                              color: AppColors.primary, size: 18),
                     ),
                     const SizedBox(width: 10),
                     Expanded(

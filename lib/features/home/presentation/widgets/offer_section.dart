@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:klinixy/core/theme/app_theme.dart';
 import 'package:klinixy/core/widgets/shared_widgets.dart';
+import 'package:klinixy/features/home/presentation/widgets/prescription_upload_sheet.dart';
 
 class OfferSection extends StatelessWidget {
   const OfferSection({super.key});
@@ -77,7 +78,14 @@ class OfferSection extends StatelessWidget {
                         ),
                         const SizedBox(height: 14),
                         TapScale(
-                          onTap: () {},
+                          onTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => const PrescriptionUploadSheet(),
+                            );
+                          },
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 8),

@@ -4,7 +4,9 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:klinixy/core/theme/app_theme.dart';
 import 'package:klinixy/core/widgets/shared_widgets.dart';
+import 'package:flutter/services.dart';
 import 'package:klinixy/features/cart/presentation/bloc/cart_bloc.dart';
+import 'package:klinixy/features/product/presentation/bloc/wishlist_bloc.dart';
 import 'package:klinixy/features/product/domain/entities/product_entity.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -74,23 +76,55 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   ),
                 ),
                 actions: [
-                  TapScale(
-                    onTap: () {},
-                    child: Container(
-                      margin: const EdgeInsets.all(8),
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        shape: BoxShape.circle,
-                        boxShadow: AppShadows.card,
-                      ),
-                      child: const Icon(Icons.favorite_border_rounded,
-                          size: 20, color: AppColors.error),
-                    ),
+                  BlocBuilder<WishlistBloc, WishlistState>(
+                    builder: (context, wishlistState) {
+                      final isWish = wishlistState.isWishlisted(product.id);
+                      return TapScale(
+                        onTap: () {
+                          context.read<WishlistBloc>().add(WishlistToggleItem(product));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(isWish
+                                  ? 'Removed from Wishlist'
+                                  : 'Added to Wishlist! ❤️'),
+                              duration: const Duration(seconds: 1),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.all(8),
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            shape: BoxShape.circle,
+                            boxShadow: AppShadows.card,
+                          ),
+                          child: Icon(
+                            isWish ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                            size: 20,
+                            color: isWish ? AppColors.error : AppColors.textSecondary,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   TapScale(
-                    onTap: () {},
+                    onTap: () {
+                      Clipboard.setData(
+                        ClipboardData(
+                          text: 'Get ${product.name} (${product.brand}) on Klinixy: http://localhost:8080/#/product/${product.id}',
+                        ),
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Product share link copied to clipboard! 📋'),
+                          duration: Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
                     child: Container(
                       margin: const EdgeInsets.only(right: 8, top: 8, bottom: 8),
                       width: 40,
@@ -121,19 +155,34 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           width: 140,
                           height: 140,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
+                            gradient: product.imageUrls.isEmpty ? LinearGradient(
                               colors: [
                                 AppColors.primary.withValues(alpha: 0.08),
                                 AppColors.secondary.withValues(alpha: 0.08),
                               ],
-                            ),
+                            ) : null,
                             borderRadius: BorderRadius.circular(24),
                           ),
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
-                              const Icon(Icons.medication_rounded,
-                                  size: 80, color: AppColors.primary),
+                              product.imageUrls.isNotEmpty
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(24),
+                                      child: Image.network(
+                                        product.imageUrls.first,
+                                        fit: BoxFit.cover,
+                                        width: 140,
+                                        height: 140,
+                                        errorBuilder: (_, __, ___) => const Icon(
+                                          Icons.medication_rounded,
+                                          size: 80,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    )
+                                  : const Icon(Icons.medication_rounded,
+                                      size: 80, color: AppColors.primary),
                               if (product.requiresPrescription)
                                 Positioned(
                                   bottom: 10,

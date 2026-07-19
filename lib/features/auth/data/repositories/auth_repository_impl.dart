@@ -17,13 +17,10 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     FirebaseAuth? firebaseAuth,
     FirebaseFirestore? firestore,
-    GoogleSignIn? googleSignIn,
+    required GoogleSignIn googleSignIn,
   })  : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
         _firestore = firestore ?? FirebaseFirestore.instance,
-        _googleSignIn = googleSignIn ??
-            GoogleSignIn(
-              scopes: ['email', 'profile'],
-            );
+        _googleSignIn = googleSignIn;
 
   @override
   Stream<UserEntity?> get authStateChanges {
@@ -98,10 +95,11 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> signOut() async {
-    await Future.wait([
-      _firebaseAuth.signOut(),
-      _googleSignIn.signOut(),
-    ]);
+    await _firebaseAuth.signOut();
+
+    if (!kIsWeb) {
+      await _googleSignIn.signOut();
+    }
   }
 
   @override

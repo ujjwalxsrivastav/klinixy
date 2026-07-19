@@ -7,7 +7,8 @@ import 'package:klinixy/features/cart/presentation/bloc/cart_bloc.dart';
 import 'package:klinixy/features/product/domain/entities/product_entity.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final String? initialQuery;
+  const SearchScreen({super.key, this.initialQuery});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -40,7 +41,15 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration.zero, () => _focusNode.requestFocus());
+    if (widget.initialQuery != null) {
+      _query = widget.initialQuery!;
+      _controller.text = widget.initialQuery!;
+    }
+    Future.delayed(Duration.zero, () {
+      if (widget.initialQuery == null && mounted) {
+        _focusNode.requestFocus();
+      }
+    });
   }
 
   @override
@@ -307,16 +316,29 @@ class _SearchResultCard extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
+                gradient: product.imageUrls.isEmpty ? LinearGradient(
                   colors: [
                     AppColors.primary.withValues(alpha: 0.08),
                     AppColors.secondary.withValues(alpha: 0.08),
                   ],
-                ),
+                ) : null,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.medication_rounded,
-                  color: AppColors.primary, size: 30),
+              child: product.imageUrls.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        product.imageUrls.first,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.medication_rounded,
+                          color: AppColors.primary,
+                          size: 30,
+                        ),
+                      ),
+                    )
+                  : const Icon(Icons.medication_rounded,
+                      color: AppColors.primary, size: 30),
             ),
             const SizedBox(width: 12),
             // Info
